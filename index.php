@@ -263,19 +263,23 @@ a {
 	margin: 20px auto 0 auto;
 }
 #playlist li {
-	font-size: 14px;
 	list-style: none;
+}
+#playlist li a {
+	font-size: 14px;
 	border-left: 1px solid #999;
 	border-bottom: 1px solid #444;
     color: #eee;
     padding: 3px 10px;
+    text-decoration: none;
+    display: block;
 }
-#playlist li:hover {
+#playlist li a:hover {
 	color: #FF0000;
 	cursor: pointer;
 	transition: color 0.3s;
 }
-#playlist li.active {
+#playlist li a.active {
 	color: #FF0000;
 	border-left: 2px solid #FF0000;
 }
@@ -310,11 +314,9 @@ a {
 <ul id="playlist">
 <?php if( !empty($storage->rows) ): ?>
 <?php foreach( $storage->rows as $row ): ?>
-<li data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">
-	[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo $row->title ?>
-	<div class="description">
-		<?php echo $row->description; ?>
-	</div>
+<li>
+<a href="https://www.youtube.com/watch?v=<?php echo $row->getYoutubeVideoId(); ?>" data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo $row->title ?></a>
+<div class="description"><?php echo $row->description; ?></div>
 </li>
 <?php endforeach; ?>
 </ul>
@@ -336,7 +338,7 @@ var Player = { // module from tubalr.com
   init: function () {
 
     var tag = document.createElement('script');
-    tag.src = "http://www.youtube.com/player_api?version=3";
+    tag.src = "https://www.youtube.com/player_api?version=3";
 
     var firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);    
@@ -358,7 +360,7 @@ var Player = { // module from tubalr.com
   },
 
   onPlayerReady: function () {
-    $('#playlist li:first').click();
+    $('#playlist li a:first').click();
     Player.self.stopVideo();
   },
 
@@ -366,6 +368,7 @@ var Player = { // module from tubalr.com
   },
 
   onPlayerError: function (errorCode) {
+  	alert('Impossible de charger l\'API Youtube');
   }
 };
 
@@ -375,14 +378,16 @@ $(function() {
 
 	Player.init();
 
-	$('#playlist li').click(function() {
+	$('#playlist li a').click(function() {
 
-		$('#playlist li.active').removeClass('active');
+		$('#playlist li a.active').removeClass('active');
 		$(this).addClass('active');
 
-		$("#description").html($(this).find('.description').html());
+		$("#description").html($(this).parent().find('div.description').html());
 
 		Player.self.loadVideoById($(this).attr('data-videoid'), 0);
+
+		return false;
 	});
 });
 </script>
