@@ -156,7 +156,7 @@ $storage = new Storage( __DIR__ . '/data/storage' );
  */
 if( isset($_GET['fetch']) ) {
 
-	$feed = 'http://shaarli.fr/?do=rss';
+	$feed = 'http://shaarli.fr/index.php?q=youtube&do=rss';
 
 	$results = array();
 
@@ -170,7 +170,7 @@ if( isset($_GET['fetch']) ) {
 
 	        foreach ($xml->channel->item as $item) {
 
-	        	if( isset($item->link) && preg_match('/http(s)\:\/\/www.youtube.(com|fr)\//', $item->link) ) {
+	        	if( isset($item->link) && preg_match('/(http(s)\:\/\/|)www.youtube.(com|fr)\//', $item->link) ) {
 
 	        		$entry = new Entry();
 	        		$entry->title = (string) $item->title;
@@ -217,22 +217,34 @@ h1 {
 }
 #playlist li {
 	list-style: none;
-    border-bottom: 1px solid #999;
+	border-left: 1px solid #999;
+	border-bottom: 1px solid #444;
     color: #eee;
-    padding: 2px 10px;
+    padding: 3px 10px;
+}
+#playlist li:hover {
+	color: #FF0000;
+	cursor: pointer;
+	transition: color 0.3s;
 }
 #playlist li.active {
 	color: #FF0000;
+	border-left: 2px solid #FF0000;
 }
 #playlist .description {
 	display: none;
 }
 #description {
 	font-size: 11px;
-	padding: 5px 20px;
+	margin: 0 0 10px 0;
+	padding: 5px 20px 20px 20px;
+	max-height: 200px;
+	overflow-y: auto;
+	border-left: 1px solid #444;
+	border-bottom: 1px solid #444;
 }
 #description a {
-	color: #eee;	
+	color: #eee;
 }
 #footer a {
 	color: #eee;
@@ -260,7 +272,7 @@ h1 {
 <?php endif; ?>
 <br />
 <div id="footer">
-	<a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="">ShaarliTV 0.1 beta - Source code</a>
+	<a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="http://nexen.mkdir.fr/zerobin/?6e22b73d42815929#8Qmdl81o49TlL1T9twjgYbTt4SQ6mgAo4z0lH8p9xt0=">ShaarliTV 0.1 beta - Source code</a>
 </div>
 </div>
 </div>
