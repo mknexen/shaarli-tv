@@ -2,12 +2,15 @@
 
 /**
  * ShaarliTV
- * @author nexen (nexen@jappix.com)
- * @version 0.1beta
+ * @author nexen (nexen@jappix.com, http://nexen.mkdir.fr/shaarli)
+ * @version 0.2 beta
+ * @website http://nexen.mkdir.fr/shaarli-tv/
  *
  * Shaarli: http://sebsauvage.net/wiki/doku.php?id=php:shaarli
  * Shaarlo: http://shaarli.fr/
  * tubalr: http://tubalr.com
+ *
+ * XMPP channel: shaarli@conference.dukgo.com
  */
 
 /**
@@ -86,7 +89,7 @@ class Storage {
 		usort($this->rows, array($this, '_sort'));
 	}
 
-	public function _sort( $a, $b ) {
+	protected function _sort( $a, $b ) {
 
 		$x = $a->getTimestamp();
 		$y = $b->getTimestamp();
@@ -152,43 +155,83 @@ class Entry {
 $storage = new Storage( __DIR__ . '/data/storage' );
 
 /**
- * Fetch shaarlo
+ * Execute action
  */
-if( isset($_GET['fetch']) ) {
+if( isset($_GET['do']) ) {
 
-	$feed = 'http://shaarli.fr/index.php?q=youtube&do=rss';
+	/**
+	 * Fetch shaarlo
+	 */
+	if( $_GET['do'] == 'fetch' ) {
 
-	$results = array();
+		$feed = 'http://shaarli.fr/index.php?q=youtube&do=rss';
 
-	$body = @file_get_contents($feed);
+		// create request
+		$options = array(
+		  'http' => array(
+		    'method' => "GET",
+		    'header' => "Accept-language: fr\r\n" .
+		              "User-Agent: shaarliTV (http://nexen.mkdir.fr/shaarli-tv/)\r\n"
+		  )
+		);
 
-	if( !empty($body) ) {
+		$context = stream_context_create($options);
 
-	    $xml = @simplexml_load_string($body);
+		$body = @file_get_contents($feed, false, $context);
 
-	    if( !empty($xml )) {
+		if( !empty($body) ) {
 
-	        foreach ($xml->channel->item as $item) {
+			// parse xml feed
+		    $xml = @simplexml_load_string($body);
 
-	        	if( isset($item->link) && preg_match('/(http(s)\:\/\/|)www.youtube.(com|fr)\//', $item->link) ) {
+		    if( !empty($xml )) {
 
-	        		$entry = new Entry();
-	        		$entry->title = (string) $item->title;
-	        		$entry->link = (string) $item->link;
-	        		$entry->pubDate = (string) $item->pubDate;
-	        		$entry->description = (string) $item->description;
-	        		$entry->category = (string) $item->category;
+		    	// search youtube videos
+		        foreach ($xml->channel->item as $item) {
 
-	        		$storage->insert( $entry );       		
-	        	}
-	        }
-	    }
+		        	if( isset($item->link)
+		        		&& preg_match('/(http(s)\:\/\/|)www.youtube.(com|fr)\//', $item->link) ) {
+
+		        		// create new entry
+		        		$entry = new Entry();
+		        		$entry->title = (string) $item->title;
+		        		$entry->link = (string) $item->link;
+		        		$entry->pubDate = (string) $item->pubDate;
+		        		$entry->description = (string) $item->description;
+		        		$entry->category = (string) $item->category;
+
+		        		$storage->insert( $entry );       		
+		        	}
+		        }
+		    }
+		}
+
+		$storage->sort();
+
+		// echo '<pre>'; print_r($storage);
+		$storage->save();		
+	}
+	/**
+	 * VLC Playlist
+	 */
+	elseif ( $_GET['do'] == 'vlc' ) {
+
+		if( !empty($storage->rows) ) {
+
+			header('Content-Disposition: attachment; filename="playlist.xspf"');
+
+			echo '<?xml version="1.0" encoding="UTF-8"?><playlist xmlns="http://xspf.org/ns/0/" xmlns:vlc="http://www.videolan.org/vlc/playlist/ns/0/" version="1"><title>playlist</title><trackList>';
+
+			foreach( $storage->rows as $row ) {
+
+				echo '<track><title>', str_replace('&', '', strip_tags($row->title)), '</title><location>https://www.youtube.com/watch?v=', $row->getYoutubeVideoId() , '</location></track>';
+			}
+
+			echo '</trackList></playlist>';			
+		}
+
 	}
 
-	$storage->sort();
-
-	// echo '<pre>'; print_r($storage);
-	$storage->save();
 	exit();
 }
 
@@ -204,11 +247,15 @@ if( isset($_GET['fetch']) ) {
 }
 body {
 	font-family: helvetica;
-	font-size: 15px;
+	font-size: 11px;
 	color: #eee;
 	background-color: #202020;
 }
 h1 {
+	font-size: 30px;
+	color: #ddd;
+}
+a {
 	color: #ddd;
 }
 #page {
@@ -216,6 +263,7 @@ h1 {
 	margin: 20px auto 0 auto;
 }
 #playlist li {
+	font-size: 14px;
 	list-style: none;
 	border-left: 1px solid #999;
 	border-bottom: 1px solid #444;
@@ -246,10 +294,11 @@ h1 {
 #description a {
 	color: #eee;
 }
-#footer a {
-	color: #eee;
-	font-size: 10px;
-	text-align: right;
+#footer {
+	text-align: center;
+}
+#footer img {
+	vertical-align: top;
 }
 </style>
 </head>
@@ -272,8 +321,11 @@ h1 {
 <?php endif; ?>
 <br />
 <div id="footer">
-	<a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="http://nexen.mkdir.fr/zerobin/?6e22b73d42815929#8Qmdl81o49TlL1T9twjgYbTt4SQ6mgAo4z0lH8p9xt0=">ShaarliTV 0.1 beta - Source code</a>
+	<p><a href="./index.php?do=vlc"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QcFExYiMBJgaQAAAlFJREFUKM+Fk01IVGEUhp/vuz/j3PHfEZWs1LKMMKMwggoMd6EYVEREiUEQCFlSEIz5AwpBLlqUIBGELYpoJ61aSAUtapKw6AeFSCodGp2c24zjzNz7tRDCkax3dw7PCy8v5wjW0LtWSrNz6U4keP1znrsvyk47nTdHMhixlnmijaayIkbtKCF7js11j9QvRCau/814qy9ghAqjjfkFNvaCWxJMVNUgRHA1J1cvAr0DFO3Yq8erW5qj9Vex93Ti+LccBxjuOvVv80BvgOmwXen1WpsQEl030DzekwCp/nsZrLZyGKo3ePzd5Zwx1l6VF2nwJWexIuPKeHk/p/bH9MOOOcL8T08O83HmPMq+iFrsRk2dQY3sox/gcqBn7dhdLQc3+Ay2SlCuAhewPODziCMA1wf6MtsOX5L4B10AzPrGE4sl+7FTH0gnwghLJ1xWquzKivVnG8qqb3e3TwJMHJXoXy/48A/GiFzR/J7PzsbhnNzWVMV2wnlNQpMajuMQiycQM7Nm9ZtnHe8PMCTXaVM1D5ykLL8RW74Wx+mcVASLRGybxFWukjjSIC10FAhTpY3c+an2BR9BKd3aP7EjfbJYJdzd0SRUPu9R3qVmoZXvAqsY010iO/oF6+1TQp9eKbcAr+Gjbq7PGBcA0WtiJyk1FvpGfnweLAO8EgwJhrVcayQKkSSqtByRWyJGdQ/HhD2UJQxtqY20ukMalmYBB1QalAuaCVoWKLmc0/SD8OEgzGLdzE+aUueQJgGJ0gsRxAG14nUECB1EHmACBlo6lWr4DVQ716xVEmGWAAAAAElFTkSuQmCC" /> Download VLC playlist</a></p>
+	<br />
+	<p><a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="https://github.com/mknexen/shaarli-tv">ShaarliTV 0.2b github</a></p>
 </div>
+<br />
 </div>
 </div>
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
