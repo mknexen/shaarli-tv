@@ -3,7 +3,7 @@
 /**
  * ShaarliTV
  * @author nexen (nexen@jappix.com, http://nexen.mkdir.fr/shaarli)
- * @version 0.2 beta
+ * @version 0.3 beta
  * @website http://nexen.mkdir.fr/shaarli-tv/
  *
  * Shaarli: http://sebsauvage.net/wiki/doku.php?id=php:shaarli
@@ -117,6 +117,26 @@ class Entry {
 	public $videoID = false;
 
 	/**
+	 * getTitle
+	 */
+	public function getTitle() {
+
+		if( preg_match('/youtube/i', $this->title) ) {
+
+			$parts = explode(' - ', $this->title);
+
+			foreach( $parts as $i => $part ) {
+				if( $part == 'YouTube' )
+					unset($parts[$i]);
+			}
+
+			return implode(' - ', $parts);			
+		}
+
+		return $this->title;
+	}
+
+	/**
 	 * getYoutubeVideoId
 	 * Source : http://stackoverflow.com/questions/3737634/regex-to-match-youtube-urls
 	 */
@@ -139,7 +159,7 @@ class Entry {
 	 * getPermalink
 	 */
 	public function getPermalink() {
-		
+		return 'https://www.youtube.com/watch?v=' . $this->	getYoutubeVideoId();
 	}
 
 	/**
@@ -224,7 +244,7 @@ if( isset($_GET['do']) ) {
 
 			foreach( $storage->rows as $row ) {
 
-				echo '<track><title>', str_replace('&', '', strip_tags($row->title)), '</title><location>https://www.youtube.com/watch?v=', $row->getYoutubeVideoId() , '</location></track>';
+				echo '<track><title>', str_replace('&', '', strip_tags($row->getTitle())), '</title><location>https://www.youtube.com/watch?v=', $row->getYoutubeVideoId() , '</location></track>';
 			}
 
 			echo '</trackList></playlist>';			
@@ -254,6 +274,9 @@ body {
 h1 {
 	font-size: 30px;
 	color: #ddd;
+}
+h1 a {
+	text-decoration: none;
 }
 a {
 	color: #ddd;
@@ -294,29 +317,40 @@ a {
 	overflow-y: auto;
 	border-left: 1px solid #444;
 	border-bottom: 1px solid #444;
+	display: none;
 }
 #description a {
 	color: #eee;
+}
+#description .actions{
+	float: right;
 }
 #footer {
 	text-align: center;
 }
 #footer img {
 	vertical-align: top;
+	border: none;
 }
 </style>
 </head>
 <body>
 <div id="page">
-<h1>shaarliTV</h1>
+<h1><a href="">shaarliTV</a></h1>
 <div id="ytplayer"></div>
 <div id="description"></div>
 <ul id="playlist">
 <?php if( !empty($storage->rows) ): ?>
 <?php foreach( $storage->rows as $row ): ?>
 <li>
-<a href="https://www.youtube.com/watch?v=<?php echo $row->getYoutubeVideoId(); ?>" data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo $row->title ?></a>
-<div class="description"><?php echo $row->description; ?></div>
+<a href="<?php echo $row->getPermalink(); ?>" data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo $row->getTitle(); ?></a>
+<div class="description">
+	<div class="actions">
+		(<a class="permalink" href="<?php echo $row->getPermalink(); ?>">Vidéo permalink</a>) (<a href="#" onclick="window.prompt('Download with youtube-dl\n(http://rg3.github.io/youtube-dl/)', 'youtube-dl -f 43 -o &quot;%(title)s.%(ext)s&quot; <?php echo $row->getPermalink(); ?>');" title="Download with youtube-dl">DL</a>)
+	</div>
+	
+	<?php echo $row->description; ?>
+</div>
 </li>
 <?php endforeach; ?>
 </ul>
@@ -325,7 +359,7 @@ a {
 <div id="footer">
 	<p><a href="./index.php?do=vlc"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QcFExYiMBJgaQAAAlFJREFUKM+Fk01IVGEUhp/vuz/j3PHfEZWs1LKMMKMwggoMd6EYVEREiUEQCFlSEIz5AwpBLlqUIBGELYpoJ61aSAUtapKw6AeFSCodGp2c24zjzNz7tRDCkax3dw7PCy8v5wjW0LtWSrNz6U4keP1znrsvyk47nTdHMhixlnmijaayIkbtKCF7js11j9QvRCau/814qy9ghAqjjfkFNvaCWxJMVNUgRHA1J1cvAr0DFO3Yq8erW5qj9Vex93Ti+LccBxjuOvVv80BvgOmwXen1WpsQEl030DzekwCp/nsZrLZyGKo3ePzd5Zwx1l6VF2nwJWexIuPKeHk/p/bH9MOOOcL8T08O83HmPMq+iFrsRk2dQY3sox/gcqBn7dhdLQc3+Ay2SlCuAhewPODziCMA1wf6MtsOX5L4B10AzPrGE4sl+7FTH0gnwghLJ1xWquzKivVnG8qqb3e3TwJMHJXoXy/48A/GiFzR/J7PzsbhnNzWVMV2wnlNQpMajuMQiycQM7Nm9ZtnHe8PMCTXaVM1D5ykLL8RW74Wx+mcVASLRGybxFWukjjSIC10FAhTpY3c+an2BR9BKd3aP7EjfbJYJdzd0SRUPu9R3qVmoZXvAqsY010iO/oF6+1TQp9eKbcAr+Gjbq7PGBcA0WtiJyk1FvpGfnweLAO8EgwJhrVcayQKkSSqtByRWyJGdQ/HhD2UJQxtqY20ukMalmYBB1QalAuaCVoWKLmc0/SD8OEgzGLdzE+aUueQJgGJ0gsRxAG14nUECB1EHmACBlo6lWr4DVQ716xVEmGWAAAAAElFTkSuQmCC" /> Download VLC playlist</a></p>
 	<br />
-	<p><a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="https://github.com/mknexen/shaarli-tv">ShaarliTV 0.2b github</a></p>
+	<p><a href="http://sebsauvage.net/wiki/doku.php?id=php:shaarli">Shaarli</a> - <a href="http://shaarli.fr/">Shaarlo</a> - <a href="https://github.com/mknexen/shaarli-tv">ShaarliTV 0.3b github</a></p>
 </div>
 <br />
 </div>
@@ -360,15 +394,14 @@ var Player = { // module from tubalr.com
   },
 
   onPlayerReady: function () {
-    $('#playlist li a:first').click();
-    Player.self.stopVideo();
+    $('#playlist li a.active').click();
   },
 
   onPlayerStateChange: function (newState) {
   },
 
   onPlayerError: function (errorCode) {
-  	alert('Impossible de charger l\'API Youtube');
+  	alert('Unable to load Youtube API');
   }
 };
 
@@ -376,16 +409,26 @@ function onYouTubePlayerAPIReady () { Player.youtubeAPIReady(); };
 
 $(function() {
 
-	Player.init();
+	function loadVideo( node ) {
+
+		$("#description").html($(node).parent().find('div.description').html()).show();
+
+		$('html,body').scrollTop(0);
+
+		Player.self.loadVideoById($(node).attr('data-videoid'), 0);
+	}
 
 	$('#playlist li a').click(function() {
 
 		$('#playlist li a.active').removeClass('active');
 		$(this).addClass('active');
 
-		$("#description").html($(this).parent().find('div.description').html());
-
-		Player.self.loadVideoById($(this).attr('data-videoid'), 0);
+		if( Player.self == null ) {
+			Player.init();
+		}
+		else {
+			loadVideo(this);
+		}
 
 		return false;
 	});
