@@ -137,6 +137,13 @@ class Entry {
 	}
 
 	/**
+	 * getDescription
+	 */
+	public function getDescription() {
+		return preg_replace('#<script(.*?)>(.*?)</script>#is', '', $this->description);
+	}
+
+	/**
 	 * getYoutubeVideoId
 	 * Source : http://stackoverflow.com/questions/3737634/regex-to-match-youtube-urls
 	 */
@@ -238,13 +245,13 @@ if( isset($_GET['do']) ) {
 
 		if( !empty($storage->rows) ) {
 
-			header('Content-Disposition: attachment; filename="playlist.xspf"');
+			header('Content-Disposition: attachment; filename="shaarliTV-' . date('Y-m-d') . '.xspf"');
 
 			echo '<?xml version="1.0" encoding="UTF-8"?><playlist xmlns="http://xspf.org/ns/0/" xmlns:vlc="http://www.videolan.org/vlc/playlist/ns/0/" version="1"><title>playlist</title><trackList>';
 
 			foreach( $storage->rows as $row ) {
 
-				echo '<track><title>', str_replace('&', '', strip_tags($row->getTitle())), '</title><location>https://www.youtube.com/watch?v=', $row->getYoutubeVideoId() , '</location></track>';
+				echo '<track><title>', htmlspecialchars(strip_tags($row->getTitle())), '</title><location>https://www.youtube.com/watch?v=', $row->getYoutubeVideoId() , '</location></track>';
 			}
 
 			echo '</trackList></playlist>';			
@@ -260,6 +267,7 @@ if( isset($_GET['do']) ) {
 <head>
 <meta charset="utf-8" />
 <title>shaarliTV</title>
+<link href="./favicon.ico" rel="shortcut icon" type="image/x-icon" />
 <style type="text/css">
 * {
 	margin: 0;
@@ -343,18 +351,17 @@ a {
 <?php if( !empty($storage->rows) ): ?>
 <?php foreach( $storage->rows as $row ): ?>
 <li>
-<a href="<?php echo $row->getPermalink(); ?>" data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo $row->getTitle(); ?></a>
+<a href="<?php echo $row->getPermalink(); ?>" data-videoid="<?php echo $row->getYoutubeVideoId(); ?>">[<?php echo date('d/m/Y H:m:s', $row->getTimestamp()); ?>] <?php echo htmlspecialchars($row->getTitle()); ?></a>
 <div class="description">
 	<div class="actions">
 		(<a class="permalink" href="<?php echo $row->getPermalink(); ?>">Vidéo permalink</a>) (<a href="#" onclick="window.prompt('Download with youtube-dl\n(http://rg3.github.io/youtube-dl/)', 'youtube-dl -f 43 -o &quot;%(title)s.%(ext)s&quot; <?php echo $row->getPermalink(); ?>');" title="Download with youtube-dl">DL</a>)
 	</div>
-	
-	<?php echo $row->description; ?>
+	<?php echo $row->getDescription(); ?>
 </div>
 </li>
 <?php endforeach; ?>
-</ul>
 <?php endif; ?>
+</ul>
 <br />
 <div id="footer">
 	<p><a href="./index.php?do=vlc"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QcFExYiMBJgaQAAAlFJREFUKM+Fk01IVGEUhp/vuz/j3PHfEZWs1LKMMKMwggoMd6EYVEREiUEQCFlSEIz5AwpBLlqUIBGELYpoJ61aSAUtapKw6AeFSCodGp2c24zjzNz7tRDCkax3dw7PCy8v5wjW0LtWSrNz6U4keP1znrsvyk47nTdHMhixlnmijaayIkbtKCF7js11j9QvRCau/814qy9ghAqjjfkFNvaCWxJMVNUgRHA1J1cvAr0DFO3Yq8erW5qj9Vex93Ti+LccBxjuOvVv80BvgOmwXen1WpsQEl030DzekwCp/nsZrLZyGKo3ePzd5Zwx1l6VF2nwJWexIuPKeHk/p/bH9MOOOcL8T08O83HmPMq+iFrsRk2dQY3sox/gcqBn7dhdLQc3+Ay2SlCuAhewPODziCMA1wf6MtsOX5L4B10AzPrGE4sl+7FTH0gnwghLJ1xWquzKivVnG8qqb3e3TwJMHJXoXy/48A/GiFzR/J7PzsbhnNzWVMV2wnlNQpMajuMQiycQM7Nm9ZtnHe8PMCTXaVM1D5ykLL8RW74Wx+mcVASLRGybxFWukjjSIC10FAhTpY3c+an2BR9BKd3aP7EjfbJYJdzd0SRUPu9R3qVmoZXvAqsY010iO/oF6+1TQp9eKbcAr+Gjbq7PGBcA0WtiJyk1FvpGfnweLAO8EgwJhrVcayQKkSSqtByRWyJGdQ/HhD2UJQxtqY20ukMalmYBB1QalAuaCVoWKLmc0/SD8OEgzGLdzE+aUueQJgGJ0gsRxAG14nUECB1EHmACBlo6lWr4DVQ716xVEmGWAAAAAElFTkSuQmCC" /> Download VLC playlist</a></p>
@@ -364,11 +371,12 @@ a {
 <br />
 </div>
 </div>
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="./js/jquery-1.10.2.min.js"></script>
 <script type="text/javascript">
 var Player = { // module from tubalr.com
+
   self: null,
-  listeners: [],
+
   init: function () {
 
     var tag = document.createElement('script');
