@@ -38,20 +38,23 @@ class Storage {
 	/**
 	 * Insert
 	 */
-	public function insert( $entry ) {
+	public function insert( Entry $entry ) {
 
-		if( !empty($this->rows) ) {
+		if( $entry->getYoutubeVideoId() != null ) {
 
-			foreach( $this->rows as $i => $row ) {
+			if( !empty($this->rows) ) {
 
-				if( $row->getYoutubeVideoId() == $entry->getYoutubeVideoId() ) {
+				foreach( $this->rows as $i => $row ) {
 
-					unset($this->rows[$i]);
+					if( $row->getYoutubeVideoId() == $entry->getYoutubeVideoId() ) {
+
+						unset($this->rows[$i]);
+					}
 				}
 			}
-		}
 
-		$this->rows[] = $entry;
+			$this->rows[] = $entry;
+		}
 	}
 
 	/**
