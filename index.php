@@ -13,6 +13,17 @@
  * XMPP channel: shaarli@conference.dukgo.com
  */
 
+// Le flux RSS
+define('RSS_FEED', 'http://shaarli.fr/index.php?q=youtube&do=rss'); // Execute "/index.php?do=fetch" to fetch feed
+
+// Le chemin complet pour le stockage
+define('STORAGE_PATH', __DIR__ . '/data/storage');
+
+// Le title de la page
+define('TITLE', 'shaarliTV');
+
+
+
 /**
  * Storage
  */
@@ -182,7 +193,7 @@ class Entry {
 }
 
 // build storage
-$storage = new Storage( __DIR__ . '/data/storage' );
+$storage = new Storage( STORAGE_PATH );
 
 /**
  * Execute action
@@ -194,20 +205,18 @@ if( isset($_GET['do']) ) {
 	 */
 	if( $_GET['do'] == 'fetch' ) {
 
-		$feed = 'http://shaarli.fr/index.php?q=youtube&do=rss';
-
 		// create request
 		$options = array(
 		  'http' => array(
 		    'method' => "GET",
 		    'header' => "Accept-language: fr\r\n" .
-		              "User-Agent: shaarliTV (http://nexen.mkdir.fr/shaarli-tv/)\r\n"
+		              "User-Agent: shaarliTV (https://github.com/mknexen/shaarli-tv)\r\n"
 		  )
 		);
 
 		$context = stream_context_create($options);
 
-		$body = @file_get_contents($feed, false, $context);
+		$body = @file_get_contents(RSS_FEED, false, $context);
 
 		if( !empty($body) ) {
 
@@ -347,7 +356,7 @@ a {
 </head>
 <body>
 <div id="page">
-<h1><a href="">shaarliTV</a></h1>
+<h1><a href=""><?php echo TITLE; ?></a></h1>
 <div id="ytplayer"></div>
 <div id="description"></div>
 <ul id="playlist">
