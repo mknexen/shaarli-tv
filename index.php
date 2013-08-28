@@ -135,19 +135,21 @@ class Entry {
 	 */
 	public function getTitle() {
 
-		if( preg_match('/youtube/i', $this->title) ) {
+		$title = $this->title;
 
-			$parts = explode(' - ', $this->title);
+		if( preg_match('/youtube/i', $title) ) {
+
+			$parts = explode(' - ', $title);
 
 			foreach( $parts as $i => $part ) {
 				if( $part == 'YouTube' )
 					unset($parts[$i]);
 			}
 
-			return implode(' - ', $parts);			
+			$title = implode(' - ', $parts);
 		}
 
-		return $this->title;
+		return str_replace('▶', '', $title);
 	}
 
 	/**
